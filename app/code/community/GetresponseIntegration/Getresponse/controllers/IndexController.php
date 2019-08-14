@@ -799,9 +799,7 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 	 */
 	public function exportCustomers($campaign_id, $params)
 	{
-		$customers = Mage::helper('getresponse')->getCustomerCollection();
-
-		//echo "<pre>"; print_r($params); die;
+		$subscribers = Mage::helper('getresponse')->getNewsletterSubscribersCollection();
 
 		$cycle_day = '';
 		if (isset($params['gr_autoresponder']) && 1 == $params['gr_autoresponder']) {
@@ -828,26 +826,43 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 		];
 
 
-		if ( !empty($customers)) {
-			foreach ($customers as $customer) {
-				$subscriberModel = Mage::getModel('newsletter/subscriber')->loadByEmail($customer->getEmail());
-				if ($subscriberModel->isSubscribed()) {
-					$result = Mage::helper('getresponse/api')->addContact(
-							$campaign_id,
-							$customer->getName(),
-							$customer->getEmail(),
-							$cycle_day,
-							Mage::getModel('getresponse/customs')->mapExportCustoms($custom_fields, $customer)
-					);
+		if ( !empty($subscribers)) {
+			foreach ($subscribers as $subscriber) {
+				$customer = Mage::getResourceModel('customer/customer_collection')
+                    ->addAttributeToSelect('email')
+                    ->addAttributeToSelect('firstname')
+                    ->addAttributeToSelect('lastname')
+                    ->joinAttribute('street', 'customer_address/street', 'default_billing', null, 'left')
+                    ->joinAttribute('postcode', 'customer_address/city', 'default_billing', null, 'left')
+                    ->joinAttribute('city', 'customer_address/postcode', 'default_billing', null, 'left')
+                    ->joinAttribute('telephone', 'customer_address/telephone', 'default_billing', null, 'left')
+                    ->joinAttribute('country', 'customer_address/country_id', 'default_billing', null, 'left')
+                    ->joinAttribute('company', 'customer_address/company', 'default_billing', null, 'left')
+                    ->joinAttribute('birthday', 'customer/dob', 'entity_id', null, 'left')
+                    ->addFieldToFilter(array(
+                        array('attribute'=>'email','eq'=>$subscriber->getEmail())
+                    ))->getFirstItem();
 
-					if (GetresponseIntegration_Getresponse_Helper_Api::CONTACT_CREATED === $result) {
-						$reports['created'] ++;
-					} elseif(GetresponseIntegration_Getresponse_Helper_Api::CONTACT_UPDATED == $result) {
-						$reports['updated'] ++;
-					} else {
-						$reports['error'] ++;
-					}
-				}
+                if (!empty($customer)) {
+                    $name = $customer->getName();
+                } else {
+                    $name = 'Friend';
+                }
+                $result = Mage::helper('getresponse/api')->addContact(
+                        $campaign_id,
+                        $name,
+                        $subscriber->getEmail(),
+                        $cycle_day,
+                        Mage::getModel('getresponse/customs')->mapExportCustoms($custom_fields, $customer)
+                );
+
+                if (GetresponseIntegration_Getresponse_Helper_Api::CONTACT_CREATED === $result) {
+                    $reports['created'] ++;
+                } elseif(GetresponseIntegration_Getresponse_Helper_Api::CONTACT_UPDATED == $result) {
+                    $reports['updated'] ++;
+                } else {
+                    $reports['error'] ++;
+                }
 			}
 		}
 
