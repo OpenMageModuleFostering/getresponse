@@ -7,6 +7,6 @@ class GetresponseIntegration_Getresponse_Model_Resource_Settings extends Mage_Co
 {
 	protected function _construct()
 	{
-		$this->_init('getresponse/settings', 'id_shop');
+		$this->_init('getresponse/settings', 'id');
 	}
 }

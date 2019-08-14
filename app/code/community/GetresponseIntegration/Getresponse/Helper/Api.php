@@ -356,7 +356,16 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 		}
 
 		if ( !empty($api_domain)) {
-			$this->grapi()->api_domain = $api_domain;
+			$this->grapi()->domain = $api_domain;
 		}
 	}
+
+	public function getApiDetails()
+    {
+        return [
+            'api_key' => $this->grapi()->api_key,
+            'api_url' => $this->grapi()->api_url,
+            'api_domain' => $this->grapi()->domain
+        ];
+    }
 }

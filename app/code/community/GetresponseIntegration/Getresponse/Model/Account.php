@@ -11,7 +11,24 @@ class GetresponseIntegration_Getresponse_Model_Account extends Mage_Core_Model_A
 		$this->_init('getresponse/account');
 	}
 
-	/**
+    /**
+     * Override for automaticly choosing integration by shop id
+     *
+     * @param $id
+     * @param null $field
+     *
+     * @return mixed
+     */
+    public function load($id, $field = null)
+    {
+        if (is_null($field)) {
+            $field = 'id_shop';
+        }
+
+        return parent::load($id, $field);
+    }
+
+    /**
 	 * @param $account
 	 * @param $shop_id
 	 *
@@ -20,6 +37,7 @@ class GetresponseIntegration_Getresponse_Model_Account extends Mage_Core_Model_A
 	public function updateAccount($account, $shop_id)
 	{
 		$data = array(
+		    'id_shop' => $shop_id,
 			'accountId' => isset($account->accountId) ? $account->accountId : null,
 			'firstName' => isset($account->firstName) ? $account->firstName : null,
 			'lastName' => isset($account->lastName) ? $account->lastName : null,

@@ -41,9 +41,6 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 	 */
 	protected function _construct()
 	{
-		Mage::setIsDeveloperMode(true);
-		ini_set('display_errors', 1);
-
 		$this->current_shop_id = Mage::helper('getresponse')->getStoreId();
 		$this->settings = new stdClass();
 	}
@@ -104,6 +101,48 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 		$this->settings->campaigns = Mage::helper('getresponse/api')->getGrCampaigns();
 	}
 
+    /**
+     * GET getresponse/index/webtraffic
+     */
+    public function webtrafficAction()
+    {
+        $this->settings->api = Mage::getModel('getresponse/settings')->load($this->current_shop_id)->getData();
+
+        $this->_title($this->__('Web Traffic Tracking'))
+            ->_title($this->__('GetResponse'));
+
+        $this->active_tab = 'webtraffic';
+
+        $this->_initAction();
+
+        $this->_addContent($this->getLayout()
+            ->createBlock('Mage_Core_Block_Template', 'getresponse_content')
+            ->setTemplate('getresponse/webtraffic.phtml')
+            ->assign('settings', $this->settings)
+        );
+
+        $this->renderLayout();
+    }
+
+    /**
+     * POST getresponse/index/activate_webtraffic
+     */
+    public function activate_webtrafficAction()
+    {
+        $this->_initAction();
+        $params = $this->getRequest()->getParams();
+
+        Mage::getModel('getresponse/settings')->updateSettings(
+            array(
+               'has_active_traffic_module' => (isset($params['has_active_traffic_module']) && $params['has_active_traffic_module'] == 1) ? 1 : 0
+            ),
+            $this->current_shop_id
+        );
+
+        Mage::getSingleton('core/session')->addSuccess('Settings have been updated.');
+        $this->_redirect('getresponse/index/webtraffic');
+    }
+
 	/**
 	 * GET getresponse/index/index
 	 */
@@ -116,6 +155,7 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 
 		$this->_initAction();
 		$site = ( !empty($this->settings->api['api_key']) && $this->disconnected === false) ? 'account' : 'apikey';
+
 		$this->_addContent($this->getLayout()
 				->createBlock('Mage_Core_Block_Template', 'getresponse_content')
 				->setTemplate('getresponse/' . $site . '.phtml')
@@ -172,13 +212,31 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 		}
 
 		Mage::register('api_key', $api_key);
+        Mage::getModel('getresponse/customs')->connectCustoms($this->current_shop_id);
 		Mage::getSingleton('core/session')->addSuccess('You connected your Magento to GetResponse.');
 
+        $featureTracking = 0;
+        $features = $this->grapi()->get_features();
+
+        if ($features instanceof stdClass && $features->feature_tracking == 1) {
+            $featureTracking = 1;
+        }
+
 		$data = array(
-				'api_key' => $api_key,
-				'api_url' => $api_url,
-				'api_domain' => $api_domain
+		    'id_shop' => $this->current_shop_id,
+            'api_key' => $api_key,
+            'api_url' => $api_url,
+            'api_domain' => $api_domain,
+            'has_gr_traffic_feature_enabled' => $featureTracking
 		);
+
+        // getting tracking code
+        $trackingCode = (array) $this->grapi()->get_tracking_code();
+
+        if (!empty($trackingCode) && is_object($trackingCode[0]) && 0 < strlen($trackingCode[0]->snippet)) {
+            $data['tracking_code_snippet'] = $trackingCode[0]->snippet;
+        }
+
 		if (false === Mage::getModel('getresponse/settings')->updateSettings($data, $this->current_shop_id)) {
 			Mage::getSingleton('core/session')->addError('Error during settings details save.');
 		}
@@ -308,17 +366,18 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 			$cycleDay = $params['cycle_day'];
 		}
 
-		Mage::getModel('getresponse/settings')->updateSettings(
-				array(
-						'campaign_id' => $params['campaign_id'],
-						'active_subscription' => (isset($params['active_subscription']) && $params['active_subscription'] == 1) ? 1 : 0,
-						'update_address' => (isset($params['gr_sync_order_data']) && $params['gr_sync_order_data'] == 1) ? 1 : 0,
-						'cycle_day' => $cycleDay
-				),
-				$this->current_shop_id
+        Mage::getModel('getresponse/settings')->updateSettings(
+            array(
+                'campaign_id' => $params['campaign_id'],
+                'active_subscription' => (isset($params['active_subscription']) && $params['active_subscription'] == 1) ? 1 : 0,
+                'update_address' => (isset($params['gr_sync_order_data']) && $params['gr_sync_order_data'] == 1) ? 1 : 0,
+                'cycle_day' => $cycleDay,
+                'subscription_on_checkout' => (isset($params['subscription_on_checkout']) && $params['subscription_on_checkout'] == 1) ? 1 : 0
+            ),
+            $this->current_shop_id
 		);
 
-		if ( !empty($params['gr_sync_order_data'])) {
+		if ( !empty($params['gr_sync_order_data']) && isset($params['gr_custom_field'])) {
 			foreach ($this->settings->customs as $cf) {
 				if (in_array($cf['custom_field'], array_keys($params['gr_custom_field']))) {
 					Mage::getModel('getresponse/customs')->updateCustom($cf['id_custom'],
@@ -392,7 +451,7 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 		$params = $this->getRequest()->getParams();
 
 		if (empty($params['webform_id'])) {
-			Mage::getSingleton('core/session')->addError('Wevform Id can\'t be empty.');
+			Mage::getSingleton('core/session')->addError('Webform Id can\'t be empty.');
 			$this->_redirect('getresponse/index/viawebform');
 
 			return;
@@ -424,6 +483,7 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 			$active = (isset($params['active_subscription']) && $params['active_subscription'] == 1) ? 1 : 0;
 			Mage::getModel('getresponse/webforms')->updateWebforms(
 					array('webform_id' => $params['webform_id'],
+                          'id_shop' => $this->current_shop_id,
 							'active_subscription' => $active,
 							'layout_position' => $params['layout_position'],
 							'block_position' => $params['block_position'],
@@ -511,7 +571,7 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 		if (is_object($add) && isset($add->campaignId)) {
 			$data = array(
 					'type' => 'success',
-					'msg' => 'Campaign "' . $campaign_name . '" sucessfully created.',
+					'msg' => 'Campaign "' . $campaign_name . '" successfully created.',
 					'c' => $params['campaign_name'],
 					'cid' => $add->campaignId
 			);
@@ -828,7 +888,7 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 	 */
 	private function setNewCampaignSettings()
 	{
-		$locale = Mage::app()->getLocale()->getLocaleCode();
+		$locale = Mage::app()->getLocale()->getDefaultLocale();
 		$code = strtoupper(substr($locale, 0, 2));
 
 		$from = self::grapi()->get_account_from_fields();
@@ -895,5 +955,4 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 
 		return $results;
 	}
-
 }

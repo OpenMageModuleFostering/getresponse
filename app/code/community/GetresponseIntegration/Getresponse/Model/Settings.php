@@ -11,6 +11,25 @@ class GetresponseIntegration_Getresponse_Model_Settings extends Mage_Core_Model_
 		$this->_init('getresponse/settings');
 	}
 
+    /**
+     * Override for automaticly choosing integration by shop id
+     *
+     * @param $id
+     * @param null $field
+     *
+     * @return mixed
+     */
+    public function load($id, $field = null)
+    {
+        if (is_null($field)) {
+            $field = 'id_shop';
+        }
+
+        return parent::load($id, $field);
+    }
+
+
+
 	/**
 	 * @param $shop_id
 	 *

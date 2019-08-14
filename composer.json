@@ -1,13 +1,13 @@
 {
     "name": "OpenMageModuleFostering/GetResponse",
     "type": "magento-module",
-    "license": "MITL",
+    "license": "OSL-v3.0",
     "homepage": "",
-    "description": "Easily add the GetResponse extension on your Magento server, and watch your subscriber list grow.",
+    "description": "GetResponse Integration package",
     "authors": [
     {
-        "name": "GetResponse",
-        "email": "grintegrations@getresponse.com"
+        "name": "Grzegorz Struczy\u0144ski",
+        "email": "gstruczynski@getresponse.com"
     }
 ],
     "suggest": {

@@ -7,6 +7,6 @@ class GetresponseIntegration_Getresponse_Model_Resource_Account extends Mage_Cor
 {
 	protected function _construct()
 	{
-		$this->_init('getresponse/account', 'id_shop');
+		$this->_init('getresponse/account', 'id');
 	}
 }
