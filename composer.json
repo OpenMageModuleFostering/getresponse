@@ -1,0 +1,16 @@
+{
+    "name": "OpenMageModuleFostering/GetResponse",
+    "type": "magento-module",
+    "license": "MITL",
+    "homepage": "",
+    "description": "Easily add the GetResponse extension on your Magento server, and watch your subscriber list grow.",
+    "authors": [
+    {
+        "name": "GetResponse",
+        "email": "grintegrations@getresponse.com"
+    }
+],
+    "suggest": {
+        "magento-hackathon/magento-composer-installer": "*"
+    }
+}
