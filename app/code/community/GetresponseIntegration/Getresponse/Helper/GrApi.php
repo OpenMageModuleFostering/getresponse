@@ -284,12 +284,13 @@ class GetresponseIntegration_Getresponse_Helper_GrApi
 		return $this->call('subscription-confirmations/body/' . $lang);
 	}
 
-    /**
-     * retrieve single custom field
-     *
-     * @param array $params
-     * @return mixed
-     */
+	/**
+	 * retrieve single custom field
+	 *
+	 * @param string $cs_id obtained by API
+	 *
+	 * @return mixed
+	 */
 	public function add_custom_field($params = array())
 	{
 		return $this->call('custom-fields', 'POST', $params);
@@ -316,7 +317,7 @@ class GetresponseIntegration_Getresponse_Helper_GrApi
 	 */
 	public function get_custom_fields($params = array())
 	{
-		return $this->call('custom-fields?' . $this->setParams($params));
+        return $this->call('custom-fields?' . $this->setParams($params));
 	}
 
 	/**

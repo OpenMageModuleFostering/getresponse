@@ -14,6 +14,14 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 	);
 
 	/**
+	 *
+	 * All custom fields.
+	 *
+	 * @var
+	 */
+	private $all_custom_fields;
+
+	/**
 	 * Getresponse API instance
 	 */
 	public static function grapi()
@@ -68,14 +76,11 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 	public function addContact($campaign, $name, $email, $cycle_day = '', $user_customs = array())
 	{
 		$params = array(
+			'name' => $name,
 			'email' => $email,
 			'campaign' => array('campaignId' => $campaign),
 			'ipAddress' => $_SERVER['REMOTE_ADDR'],
 		);
-
-		if (!empty(trim($name))) {
-            $params['name'] = trim($name);
-        }
 
 		if (is_numeric($cycle_day) && $cycle_day >= 0) {
 			$params['dayOfCycle'] = $cycle_day;
@@ -152,25 +157,42 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 			return $custom_fields;
 		}
 
+		if (empty($this->all_custom_fields)) {
+            $this->all_custom_fields = $this->get_custom_fields();
+        }
+
+        $dropCustoms = false;
+
 		foreach ($user_customs as $name => $value) {
-		    $customs = (array) $this->grapi()->get_custom_fields(array('query[name]' => $name));
-		    $custom = reset($customs);
 
-		    // custom field not found - create new
-		    if (empty($custom) || empty($custom->customFieldId)) {
-                $custom = $this->grapi()->add_custom_field(array(
-                    'name' => $name,
-                    'type' => is_array($value) ? "checkbox" : "text",
-                    'hidden' => "false",
-                    'values' => is_array($value) ? $value : array($value),
-                ));
-            }
+			// If custom field is already created on gr account set new value.
+			if (in_array($name, array_keys($this->all_custom_fields))) {
+				$custom_fields[] = array('customFieldId' => $this->all_custom_fields[$name],
+										 'value' => is_array($value) ? $value : array($value),
+				);
+			} // create new custom field
+			else {
 
-            $custom_fields[] = array(
-                'customFieldId' => $custom->customFieldId,
-                'value' => is_array($value) ? $value : array($value)
-            );
+				$custom = $this->grapi()->add_custom_field(array(
+					'name' => $name,
+					'type' => is_array($value) ? "checkbox" : "text",
+					'hidden' => "false",
+					'values' => is_array($value) ? $value : array($value),
+				));
+
+				if ( !empty($custom) && !empty($custom->customFieldId)) {
+					$custom_fields[] = array('customFieldId' => $custom->customFieldId,
+											 'value' => is_array($value) ? $value : array($value)
+					);
+
+                    $dropCustoms = true;
+				}
+			}
 		}
+
+		if ($dropCustoms) {
+            $this->all_custom_fields = [];
+        }
 
 		return $custom_fields;
 	}
