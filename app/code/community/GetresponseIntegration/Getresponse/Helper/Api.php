@@ -12,14 +12,9 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 		self::CONTACT_UPDATED => 'Updated',
 		self::CONTACT_ERROR => 'Not added'
 	);
-
-	/**
-	 *
-	 * All custom fields.
-	 *
-	 * @var
-	 */
-	private $all_custom_fields;
+    
+    /** @var array */
+    private $cachedCustoms = [];
 
 	/**
 	 * Getresponse API instance
@@ -76,11 +71,14 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 	public function addContact($campaign, $name, $email, $cycle_day = '', $user_customs = array())
 	{
 		$params = array(
-			'name' => $name,
 			'email' => $email,
 			'campaign' => array('campaignId' => $campaign),
 			'ipAddress' => $_SERVER['REMOTE_ADDR'],
 		);
+
+		if (!empty(trim($name))) {
+            $params['name'] = trim($name);
+        }
 
 		if (is_numeric($cycle_day) && $cycle_day >= 0) {
 			$params['dayOfCycle'] = $cycle_day;
@@ -157,42 +155,32 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 			return $custom_fields;
 		}
 
-		if (empty($this->all_custom_fields)) {
-            $this->all_custom_fields = $this->get_custom_fields();
-        }
-
-        $dropCustoms = false;
-
 		foreach ($user_customs as $name => $value) {
 
-			// If custom field is already created on gr account set new value.
-			if (in_array($name, array_keys($this->all_custom_fields))) {
-				$custom_fields[] = array('customFieldId' => $this->all_custom_fields[$name],
-										 'value' => is_array($value) ? $value : array($value),
-				);
-			} // create new custom field
-			else {
+            if (!isset($this->cachedCustoms[$name])) {
+                $customs = (array) $this->grapi()->get_custom_fields(['query[name]' => $name]);
+                $custom  = reset($customs);
 
-				$custom = $this->grapi()->add_custom_field(array(
-					'name' => $name,
-					'type' => is_array($value) ? "checkbox" : "text",
-					'hidden' => "false",
-					'values' => is_array($value) ? $value : array($value),
-				));
+                // custom field not found - create new
+                if (empty($custom) || empty($custom->customFieldId)) {
+                    $custom = $this->grapi()->add_custom_field([
+                        'name'   => $name,
+                        'type'   => is_array($value) ? "checkbox" : "text",
+                        'hidden' => "false",
+                        'values' => is_array($value) ? $value : [$value],
+                    ]);
+                }
 
-				if ( !empty($custom) && !empty($custom->customFieldId)) {
-					$custom_fields[] = array('customFieldId' => $custom->customFieldId,
-											 'value' => is_array($value) ? $value : array($value)
-					);
+                $this->cachedCustoms[$name] = $custom;
+            } else {
+                $custom = $this->cachedCustoms[$name];
+            }
 
-                    $dropCustoms = true;
-				}
-			}
+            $custom_fields[] = array(
+                'customFieldId' => $custom->customFieldId,
+                'value' => is_array($value) ? $value : array($value)
+            );
 		}
-
-		if ($dropCustoms) {
-            $this->all_custom_fields = [];
-        }
 
 		return $custom_fields;
 	}

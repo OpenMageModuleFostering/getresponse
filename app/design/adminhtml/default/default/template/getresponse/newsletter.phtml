@@ -1,0 +1,137 @@
+<div>
+    <div class="content-header">
+        <h3 class="icon-head head-categories">Subscription via newsletter</h3>
+    </div>
+    <?php include_once('add_campaign.phtml'); ?>
+    <form id="getresponse_export_form" method="post"
+          action="<?php echo Mage::helper("adminhtml")->getUrl('getresponse/index/activate_newsletter'); ?>">
+
+        <p style="padding-bottom: 10px;">
+            You can add subscribers to a specific GetResponse campaign when people join to Magento newsletter (using the
+            newsletter formular). Select an existing campaign or create a new one for your visitors.
+        </p>
+
+        <p>
+			<span class="switch_active_subscription">
+				<input
+                        class="GR_checkbox"
+                        type="checkbox"
+                        name="newsletter_subscription"
+                        id="newsletter_subscription"
+                        value="1"
+                    <?php if (isset($settings->api['newsletter_subscription']) and $settings->api['newsletter_subscription'] == 1) : ?>
+                        checked="checked"
+                    <?php endif; ?>
+                />
+			</span>
+            <label class="GR_label" for="active_subscription">Allow subscriptions when customers joins to newsletter</label>
+
+        </p>
+
+        <div id="details"
+             style="<?php if (!isset($settings->api['newsletter_subscription']) || $settings->api['newsletter_subscription'] !== '1') {
+                 echo "display: none;";
+             } ?>">
+            <p>
+                <label class="GR_label" for="newsletter_campaign_id">Select your campaign</label>
+                <?php
+                if (!empty($settings->campaigns)) {
+                    ?>
+                    <select class="GR_input" name="newsletter_campaign_id" id="newsletter_campaign_id">
+                        <?php
+                        foreach ($settings->campaigns as $id => $name) {
+                            echo '<option value="' . $id . '"', ($id == $settings->api['newsletter_campaign_id']) ? ' selected="selected"' : '', '>' . $name . '</option>';
+                        }
+                        ?>
+                    </select>
+                <?php } else {
+                    ?>
+                    <span class="error">An error occurred while trying to get campaigns.</span>
+                    <?php
+                }
+                ?>
+                <button id="create-campaign">Add new campaign</button>
+            </p>
+
+            <p id="cycle_day_section" style="padding: 5px 0px 10px 0px;">
+
+                <label class="GR_label"></label>
+
+                <span>
+					<input type="checkbox" class="GR_checkbox" name="gr_autoresponder" id="gr_autoresponder" value="1"/>
+				</span>
+
+                <label for="gr_autoresponder">Add to autoresponder sequence</label>
+                <br/>
+                <label class="GR_label" for="cycle_day"></label>
+                <select class="GR_input" name="cycle_day" id="cycle_day"></select>
+            </p>
+        </div>
+
+        <script>
+            var details = jQuery('#details');
+
+            function switchSubscriptionHandler() {
+                jQuery('.switch_active_subscription').find('[class*=GR_checkbox]').on("click", function (e) {
+                    details.toggle('slow');
+                });
+            }
+
+            switchSubscriptionHandler();
+
+            jQuery('#newsletter_campaign_id').change(function () {
+                getCycleDays();
+            });
+
+            function getCycleDays() {
+                var newsletter_campaign_id = jQuery('#newsletter_campaign_id').val(),
+                    day_element = jQuery('#cycle_day'),
+                    checkbox = jQuery('#gr_autoresponder'),
+                    cycles = jQuery.parseJSON('<?php echo isset($settings->campaign_days) ? addslashes(json_encode($settings->campaign_days)) : "{}"; ?>');
+
+                if (cycles.hasOwnProperty(newsletter_campaign_id)) {
+                    day_element.html('');
+                    checkbox.removeAttr('disabled');
+                    day_element.removeAttr('disabled');
+                    var obj = cycles[newsletter_campaign_id];
+                    for (var prop in obj) {
+                        if (obj.hasOwnProperty(prop)) {
+
+                            var selected = '<?php if (isset($settings->api['cycle_day'])) {
+                                echo $settings->api['cycle_day'];
+                            } else {
+                                echo '';
+                            } ?>';
+
+                            var select = (selected == obj[prop].day) ? 'selected' : '';
+
+                            if ('' != select) {
+                                checkbox.attr('checked', 'checked');
+                            }
+
+                            var option = '<option value="' + parseInt(obj[prop].day) + '" ' + select + '>Day ' +
+                                obj[prop].day + ': ' + obj[prop].name + ' (' + obj[prop].status + ')' +
+                                '</option>';
+
+                            day_element.append(option);
+                        }
+                    }
+                } else {
+                    day_element.html('<option value="">no autoresponders</option>');
+                    day_element.attr('disabled', 'disabled');
+                    checkbox.attr('disabled', 'disabled');
+                }
+            }
+
+            getCycleDays();
+        </script>
+
+        <input name="form_key" type="hidden" value="<?php echo Mage::getSingleton('core/session')->getFormKey() ?>"/>
+
+        <div style="margin-left: 212px;">
+            <button style="margin-top: 12px;" id="gr_export" type="submit" name="Submit" class="save">
+                <span><span>Save subscription settings</span></span></button>
+        </div>
+
+    </form>
+</div>

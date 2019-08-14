@@ -112,14 +112,15 @@ class GetresponseIntegration_Getresponse_Model_Customs extends Mage_Core_Model_A
         if ( !empty($user_customs) && !empty($db_customs)) {
 
             foreach ($db_customs as $cf) {
-                if (in_array($cf['custom_field'], array_keys($user_customs)) &&
-                    !empty($user_customs[$cf['custom_field']])
+                if (
+                    in_array($cf['custom_field'], array_keys($user_customs))
+                    && !empty($user_customs[$cf['custom_field']])
+                    && !in_array($cf['custom_field'], array('firstname', 'lastname', 'email'))
                 ) {
                     $fields[$cf['custom_value']] = trim(preg_replace('/\s+/', ' ', $user_customs[$cf['custom_field']]));
                 }
             }
         }
-
         return $fields;
     }
 

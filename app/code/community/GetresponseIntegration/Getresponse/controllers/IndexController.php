@@ -134,13 +134,60 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 
         Mage::getModel('getresponse/settings')->updateSettings(
             array(
-               'has_active_traffic_module' => (isset($params['has_active_traffic_module']) && $params['has_active_traffic_module'] == 1) ? 1 : 0
+                'has_active_traffic_module' => (isset($params['has_active_traffic_module']) && $params['has_active_traffic_module'] == 1) ? 1 : 0
             ),
             $this->current_shop_id
         );
 
         Mage::getSingleton('core/session')->addSuccess('Settings have been updated.');
         $this->_redirect('getresponse/index/webtraffic');
+    }
+
+    /**
+     * GET getresponse/index/newsletter
+     */
+    public function newsletterAction()
+    {
+        $this->settings->api = Mage::getModel('getresponse/settings')->load($this->current_shop_id)->getData();
+
+        $this->_title($this->__('Subscription via newsletter'))
+            ->_title($this->__('GetResponse'));
+
+        $this->active_tab = 'newsletter';
+
+        $this->_initAction();
+        $this->disableIntegrationIfApiNotActive();
+
+        $this->settings->campaign_days = Mage::helper('getresponse/api')->getCampaignDays();
+        $this->setNewCampaignSettings();
+
+        $this->_addContent($this->getLayout()
+            ->createBlock('Mage_Core_Block_Template', 'getresponse_content')
+            ->setTemplate('getresponse/newsletter.phtml')
+            ->assign('settings', $this->settings)
+        );
+
+        $this->renderLayout();
+    }
+
+    /**
+     * POST getresponse/index/activate_newsletter
+     */
+    public function activate_newsletterAction()
+    {
+        $this->_initAction();
+        $params = $this->getRequest()->getParams();
+
+        Mage::getModel('getresponse/settings')->updateSettings(
+            array(
+               'newsletter_subscription' => (isset($params['newsletter_subscription']) && $params['newsletter_subscription'] == 1) ? 1 : 0,
+               'newsletter_campaign_id' => (isset($params['newsletter_campaign_id'])) ? $params['newsletter_campaign_id'] : ''
+            ),
+            $this->current_shop_id
+        );
+
+        Mage::getSingleton('core/session')->addSuccess('Settings have been updated.');
+        $this->_redirect('getresponse/index/newsletter');
     }
 
 	/**
@@ -807,7 +854,6 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 		}
 
 		$custom_fields = !empty($params['gr_custom_field']) ? $params['gr_custom_field'] : array();
-		$custom_fields = array('firstname' => 'firstname', 'lastname' => 'lastname') + $custom_fields;
 
 		if ( !empty($params['gr_custom_field'])) {
 			foreach ($params['gr_custom_field'] as $field_key => $field_value) {
@@ -824,7 +870,6 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 			'updated' => 0,
 			'error' => 0,
 		];
-
 
 		if ( !empty($subscribers)) {
 			foreach ($subscribers as $subscriber) {
@@ -846,7 +891,7 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
                 if (!empty($customer)) {
                     $name = $customer->getName();
                 } else {
-                    $name = 'Friend';
+                    $name = null;
                 }
                 $result = Mage::helper('getresponse/api')->addContact(
                         $campaign_id,

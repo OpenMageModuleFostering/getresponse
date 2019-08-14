@@ -515,4 +515,65 @@ class GetresponseIntegration_Getresponse_Model_Observer
 
         return $this;
     }
+
+    /**
+     * @param Varien_Event_Observer $observer
+     *
+     * @return $this
+     */
+    public function initBeforeAddToNewsletterAction(Varien_Event_Observer $observer)
+    {
+        if ( !Mage::helper('getresponse')->isEnabled()) {
+            return $this;
+        }
+
+        $shop_id = Mage::helper('getresponse')->getStoreId();
+        $settings = Mage::getModel('getresponse/settings')->load($shop_id)->getData();
+
+        if (empty($settings['api_key']) || '1' !== $settings['newsletter_subscription'] || empty($settings['newsletter_campaign_id'])) {
+            return $this;
+        }
+
+        $name = $email = null;
+        $post = Mage::app()->getRequest()->getPost();
+
+        /** @var Mage_Customer_Model_Session $customerSession */
+        $customerSession = Mage::getSingleton('customer/session');
+        $customer = $customerSession->getCustomer();
+
+        // only, if customer is logged in.
+        if (!$customer->isEmpty() && strlen($customer->email) > 0 && isset($post['is_subscribed']) && $post['is_subscribed'] === 1) {
+            $name = $customer->firstname . ' ' . $customer->lastname;
+            $email = $customer->email;
+        } else if (isset($post['email']) && !empty($post['email'])) {
+            $name = 'Friend';
+            $email = $post['email'];
+        }
+
+        if (empty($email)) {
+            return $this;
+        }
+
+        $subscriberModel = Mage::getModel('newsletter/subscriber')->loadByEmail($email);
+
+        if (false === $subscriberModel->isSubscribed()) {
+            return $this;
+        }
+
+        Mage::helper('getresponse/api')->setApiDetails(
+            $settings['api_key'],
+            $settings['api_url'],
+            $settings['api_domain']
+        );
+
+        Mage::helper('getresponse/api')->addContact(
+            $settings['newsletter_campaign_id'],
+            $name,
+            $email,
+            $settings['cycle_day'],
+            []
+        );
+
+        return $this;
+    }
 }

@@ -1,7 +1,7 @@
 <config>
     <modules>
         <GetresponseIntegration_Getresponse>
-            <version>1.0.6</version>
+            <version>1.0.5</version>
         </GetresponseIntegration_Getresponse>
     </modules>
 
@@ -127,6 +127,14 @@
             </updates>
         </layout>
         <events>
+            <newsletter_subscriber_save_commit_after>
+                <observers>
+                    <getresponse_add_from_newsletter_form>
+                        <class>GetresponseIntegration_Getresponse_Model_Observer</class>
+                        <method>initBeforeAddToNewsletterAction</method>
+                    </getresponse_add_from_newsletter_form>
+                </observers>
+            </newsletter_subscriber_save_commit_after>
             <controller_action_layout_generate_blocks_before>
                 <observers>
                     <getresponse_block_observer>
@@ -231,6 +239,7 @@
                         <title>Campaign rules</title>
                         <action>getresponse/index/automation</action>
                     </automation_page>
+                    <!--
                     <shop_page module="getresponse">
                         <title>GetResponse E-commerce</title>
                         <action>getresponse/shop/index</action>
@@ -239,6 +248,11 @@
                         <title>Web Traffic Tracking</title>
                         <action>getresponse/index/webtraffic</action>
                     </web_traffic_page>
+                    -->
+                    <newsletter_page module="getresponse">
+                        <title>Subscription via newsletter</title>
+                        <action>getresponse/index/newsletter</action>
+                    </newsletter_page>
                 </children>
             </getresponse_menu>
         </menu>

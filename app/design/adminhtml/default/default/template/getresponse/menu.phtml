@@ -50,6 +50,13 @@
 					<span>GetResponse E-commerce</span>
 				</a>
 			</li> */ ?>
+            <li class="">
+                <a href="<?php echo Mage::helper("adminhtml")->getUrl('getresponse/index/newsletter'); ?>"
+                   class="tab-item-link <?php if ($active_tab == 'newsletter') : echo 'active'; endif; ?>"
+                   title="newsletter">
+                    <span>Subscription via newsletter</span>
+                </a>
+            </li>
 		<?php }
 		else { ?>
 			<li>
