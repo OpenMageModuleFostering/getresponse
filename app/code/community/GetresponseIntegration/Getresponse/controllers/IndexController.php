@@ -807,7 +807,6 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 		}
 
 		$custom_fields = !empty($params['gr_custom_field']) ? $params['gr_custom_field'] : array();
-		$custom_fields = array('firstname' => 'firstname', 'lastname' => 'lastname') + $custom_fields;
 
 		if ( !empty($params['gr_custom_field'])) {
 			foreach ($params['gr_custom_field'] as $field_key => $field_value) {
@@ -824,7 +823,6 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
 			'updated' => 0,
 			'error' => 0,
 		];
-
 
 		if ( !empty($subscribers)) {
 			foreach ($subscribers as $subscriber) {
@@ -846,7 +844,7 @@ class GetresponseIntegration_Getresponse_IndexController extends Mage_Adminhtml_
                 if (!empty($customer)) {
                     $name = $customer->getName();
                 } else {
-                    $name = 'Friend';
+                    $name = null;
                 }
                 $result = Mage::helper('getresponse/api')->addContact(
                         $campaign_id,

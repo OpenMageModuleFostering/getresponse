@@ -1,7 +1,7 @@
 <config>
     <modules>
         <GetresponseIntegration_Getresponse>
-            <version>1.0.2</version>
+            <version>1.0.5</version>
         </GetresponseIntegration_Getresponse>
     </modules>
 
