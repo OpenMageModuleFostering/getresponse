@@ -143,13 +143,31 @@ class GetresponseIntegration_Getresponse_Helper_GrApi
 	}
 
 	/**
-	 * Return all campaigns
+	 * Return features list
 	 * @return mixed
 	 */
-	public function get_campaigns($params)
+	public function get_features()
 	{
-		return $this->call('campaigns?' . $this->setParams($params));
+		return $this->call('accounts/features');
 	}
+
+	/**
+	 * Return features list
+	 * @return mixed
+	 */
+	public function get_tracking_code()
+	{
+		return $this->call('tracking');
+	}
+
+    /**
+     * Return all campaigns
+     * @return mixed
+     */
+    public function get_campaigns($params)
+    {
+        return $this->call('campaigns?' . $this->setParams($params));
+    }
 
 	/**
 	 * get single campaign
@@ -400,19 +418,63 @@ class GetresponseIntegration_Getresponse_Helper_GrApi
 		return $this->call('autoresponders?' . $this->setParams($params));
 	}
 
-	/**
-	 * Curl run request
-	 *
-	 * @param null   $api_method
-	 * @param string $http_method
-	 * @param array  $params
-	 *
-	 * @return mixed
-	 * @throws Exception
-	 */
+    /**
+     * Retrieve shops.
+     *
+     * @return object
+     */
+    public function get_shops()
+    {
+        return $this->call('shops');
+	}
+
+    /**
+     * Create new shop.
+     *
+     * @param array $params
+     * @return object
+     */
+    public function add_shop($params)
+    {
+        return $this->call('shops', 'POST', $params);
+    }
+
+    /**
+     * Create new cart.
+     *
+     * @param string $shopId
+     * @param array $params
+     *
+     * @return object
+     */
+    public function add_new_cart($shopId, $params)
+    {
+        return $this->call('shops/'.$shopId.'/carts', 'POST', $params);
+    }
+
+    /**
+     * @param string $shopId
+     * @param array $params
+     *
+     * @return object
+     */
+    public function add_new_purchase($shopId, $params)
+    {
+        return $this->call('shops/'.$shopId.'/purchase', 'POST', $params);
+    }
+
+    /**
+     * Curl run request
+     *
+     * @param null $api_method
+     * @param string $http_method
+     * @param array $params
+     *
+     * @return object
+     * @throws Exception
+     */
 	private function call($api_method = null, $http_method = 'GET', $params = array())
 	{
-
 		if (empty($api_method)) {
 			return (object)array(
 				'httpStatus' => '400',

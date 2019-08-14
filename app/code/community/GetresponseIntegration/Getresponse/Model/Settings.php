@@ -28,9 +28,7 @@ class GetresponseIntegration_Getresponse_Model_Settings extends Mage_Core_Model_
         return parent::load($id, $field);
     }
 
-
-
-	/**
+    /**
 	 * @param $shop_id
 	 *
 	 * @return bool
@@ -44,7 +42,11 @@ class GetresponseIntegration_Getresponse_Model_Settings extends Mage_Core_Model_
 			'active_subscription' => '0',
 			'update_address' => '0',
 			'campaign_id' => '',
-			'cycle_day' => '0'
+			'cycle_day' => '0',
+            'has_gr_traffic_feature_enabled' => '0',
+            'has_active_traffic_module' => '0',
+            'tracking_code_snippet' => '',
+            'subscription_on_checkout' => '0'
 		));
 
 		try {

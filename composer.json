@@ -1,12 +1,12 @@
 {
     "name": "OpenMageModuleFostering/GetResponse",
     "type": "magento-module",
-    "license": "OSL-v3.0",
+    "license": "GNU",
     "homepage": "",
-    "description": "GetResponse Integration package",
+    "description": "GetResponse integration",
     "authors": [
     {
-        "name": "Grzegorz Struczy\u0144ski",
+        "name": "GetResponse",
         "email": "gstruczynski@getresponse.com"
     }
 ],

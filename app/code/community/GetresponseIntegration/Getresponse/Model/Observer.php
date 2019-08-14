@@ -12,9 +12,58 @@ class GetresponseIntegration_Getresponse_Model_Observer
 	 *
 	 * @return $this
 	 */
+	public function addTrackingCodeToHeader(Varien_Event_Observer $observer)
+	{
+        if ( !Mage::helper('getresponse')->isEnabled()) {
+            return $this;
+        }
+
+        $shop_id = Mage::helper('getresponse')->getStoreId();
+
+        $settings = Mage::getModel('getresponse/settings')->load($shop_id)->getData();
+        if (empty($settings['api_key']) || 0 === (int) $settings['has_active_traffic_module']) {
+            return $this;
+        }
+
+        $layout = Mage::app()->getLayout();
+        /* @var $block Mage_Page_Block_Html_Head */
+        $block = $observer->getEvent()->getBlock();
+
+        if ("head" == $block->getNameInLayout()) {
+            $myBlock = $layout->createBlock('core/text');
+            $myBlock->setText($settings['tracking_code_snippet']);
+
+            $block->append($myBlock);
+        }
+
+        if ("footer" == $block->getNameInLayout()) {
+
+            if (Mage::getSingleton('customer/session')->isLoggedIn()) {
+
+                $customer = Mage::getSingleton('customer/session')->getCustomer();
+
+                if (strlen($customer->email) > 0) {
+
+                    $myBlock = $layout->createBlock('core/text');
+
+                    $myBlock->setText('<script type="text/javascript">gaSetUserId("'.$customer->email.'");</script>');
+
+                    $block->append($myBlock);
+                }
+            }
+        }
+
+		return $this;
+	}
+
+	/**
+	 * @param Varien_Event_Observer $observer
+	 *
+	 * @return $this
+	 */
 	public function addJQueryToHeader(Varien_Event_Observer $observer)
 	{
-		if ( !Mage::helper('getresponse')->isEnabled()) {
+	    if ( !Mage::helper('getresponse')->isEnabled()) {
 			return $this;
 		}
 
@@ -247,4 +296,223 @@ class GetresponseIntegration_Getresponse_Model_Observer
 		return true;
 	}
 
+    public function createAccountCheckout()
+    {
+
+    }
+
+    /**
+     * @param $observer
+     */
+    public function createNewCartInGetResponseWhenAddedToCart($observer)
+    {
+        /** @var Mage_Checkout_Model_Session $checkoutSession */
+        $checkoutSession = Mage::getSingleton('checkout/session');
+
+        $quote = $checkoutSession->getQuote();
+        $items = $quote->getAllVisibleItems();
+
+        // only, if cart is not empty.
+        if (count($items) === 0) {
+            return;
+        }
+
+        /** @var Mage_Customer_Model_Session $customerSession */
+        $customerSession = Mage::getSingleton('customer/session');
+
+        $customer = $customerSession->getCustomer();
+
+        // only, if customer is logged in.
+        if ($customer->isEmpty() || strlen($customer->email) === 0) {
+            return;
+        }
+
+        /** @var GetresponseIntegration_Getresponse_Helper_GrShop $shopHelper */
+        $shopHelper = Mage::helper('getresponse/grShop');
+        $shopHelper->addNewCartToGetResponse($customer->email);
+    }
+
+    /**
+     * @param Varien_Event_Observer $observer
+     */
+    public function CreateNewPurchaseInGetresponseWhenOrderPlaced($observer)
+    {
+        /** @var Varien_Event $event */
+        $event = $observer->getEvent();
+
+        /** @var Mage_Sales_Model_Order $order */
+        $order = $event->getOrder();
+
+        $items = $order->getAllItems();
+
+        $discount = 0;
+
+        /** @var Mage_Sales_Model_Order_Item $item */
+        foreach ($items as $item) {
+
+            $product = $item->getProduct();
+            $discount += (float) ($product->getPrice() - $product->getSpecialPrice());
+        }
+
+        /** @var Mage_Sales_Model_Order_Payment $payment */
+        $payment = $order->getPayment();
+
+        // total cost for goods without shipping
+        $subtotalAmount = $order->getSubtotal();
+        // currency (USD)
+        $currency = $order->getBaseCurrency()->getCurrencyCode();
+        // total cost of shipping
+        $shippingCost = $payment->getShippingAmount();
+
+        $params = array(
+            'shippingCost' => $shippingCost,
+            'currency' => $currency,
+            'value' => $subtotalAmount,
+            'discount' => $discount
+        );
+
+        /** @var Mage_Customer_Model_Session $customerSession */
+        $customerSession = Mage::getSingleton('customer/session');
+
+        $customer = $customerSession->getCustomer();
+
+        // only, if customer is logged in.
+        if ($customer->isEmpty() || strlen($customer->email) === 0) {
+            return;
+        }
+
+        /** @var GetresponseIntegration_Getresponse_Helper_GrShop $shopHelper */
+        $shopHelper = Mage::helper('getresponse/grShop');
+        $shopHelper->addNewPurchaseToGetResponse($customer->email, $params);
+    }
+
+    /**
+     * @param $observer
+     */
+    public function createNewCartInGetResponseWhenCustomerLoggedIn($observer)
+    {
+        $this->createNewCartInGetResponseWhenAddedToCart($observer);
+    }
+
+    /**
+     * This action is running before all pages loading.
+     *
+     * @param Varien_Event_Observer $observer
+     *
+     * @return $this
+     */
+    public function initBeforeEventAction($observer)
+    {
+        if (!Mage::helper('getresponse')->isEnabled()) {
+            return $this;
+        }
+
+        $shop_id = Mage::helper('getresponse')->getStoreId();
+        $settings = Mage::getModel('getresponse/settings')->load($shop_id)->getData();
+
+        if (empty($settings['api_key'])) {
+            return $this;
+        }
+
+        Mage::register('_subscription_on_checkout', (bool) $settings['subscription_on_checkout']);
+    }
+
+    /**
+     * Get billing data if 'is_subscribed' parameter is ticked.
+     *
+     * @param  Varien_Event_Observer$observer
+     * @return $this
+     */
+    public function checkoutSaveAddress($observer)
+    {
+        if (!Mage::helper('getresponse')->isEnabled()) {
+            return $this;
+        }
+
+        $post = Mage::app()->getRequest()->getPost();
+
+        if (empty($post) || empty($post['billing']) || $post['is_subscribed'] != 1) {
+            return $this;
+        }
+
+        /** @var Mage_Core_Model_Session $session */
+        $session = Mage::getSingleton('core/session');
+
+        $session->setData('_is_subscribed', true);
+        $session->setData('_subscriber_data', $post['billing']);
+
+        return $this;
+    }
+
+    /**
+     * @param Varien_Event_Observer $observer
+     *
+     * @return $this
+     */
+    public function checkoutAllAfterFormSubmitted($observer)
+    {
+        if ( !Mage::helper('getresponse')->isEnabled()) {
+            return $this;
+        }
+
+        /** @var Varien_Event $event */
+        $event = $observer->getEvent();
+
+        /** @var Mage_Sales_Model_Quote $Quote */
+        $Quote =$event->getQuote();
+
+        if (false === in_array($Quote->getCheckoutMethod(true), array('register', 'guest'))) {
+            return $this;
+        }
+
+        /** @var Mage_Core_Model_Session $session */
+        $session = Mage::getSingleton('core/session');
+
+        $isSubscribed = (bool) $session->getData('_is_subscribed');
+
+        if (0 === $isSubscribed) {
+            return $this;
+        }
+
+        $details = (array) $session->getData('_subscriber_data');
+
+        // clear session
+        $session->setData('_is_subscribed', null);
+        $session->setData('_subscriber_data', null);
+
+        if (empty($details['email'])) {
+            return $this;
+        }
+
+        Mage::getModel('newsletter/subscriber')->subscribe($details['email']);
+
+        $shop_id = Mage::helper('getresponse')->getStoreId();
+
+        $settings = Mage::getModel('getresponse/settings')->load($shop_id)->getData();
+
+        if (empty($settings['api_key'])) {
+            return $this;
+        }
+
+        Mage::helper('getresponse/api')->setApiDetails(
+            $settings['api_key'],
+            $settings['api_url'],
+            $settings['api_domain']
+        );
+
+        $customs = (array) Mage::getModel('getresponse/customs')->getCustoms($shop_id);
+
+        $details['street'] = join(' ', (array) $details['street']);
+        $details['country'] = $details['country_id'];
+
+        Mage::helper('getresponse/api')->addContact(
+            $settings['campaign_id'],
+            $details['firstname'] . ' ' . $details['lastname'],
+            $details['email'],
+            $settings['cycle_day'],
+            Mage::getModel('getresponse/customs')->mapCustoms($details, $customs)
+        );
+
+        return $this;
+    }
 }

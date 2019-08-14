@@ -1,7 +1,7 @@
 <config>
     <modules>
         <GetresponseIntegration_Getresponse>
-            <version>1.0.1</version>
+            <version>1.0.2</version>
         </GetresponseIntegration_Getresponse>
     </modules>
 
@@ -19,6 +19,35 @@
         </blocks>
 
         <events>
+            <controller_front_init_before>
+                <observers>
+                    <getresponse_init_before>
+                        <class>GetresponseIntegration_Getresponse_Model_Observer</class>
+                        <method>initBeforeEventAction</method>
+                        <type>singleton</type>
+                    </getresponse_init_before>
+                </observers>
+            </controller_front_init_before>
+
+            <checkout_submit_all_after>
+                <observers>
+                    <getresponse_checkout_all_after_form_submitted>
+                        <class>GetresponseIntegration_Getresponse_Model_Observer</class>
+                        <method>checkoutAllAfterFormSubmitted</method>
+                        <type>singleton</type>
+                    </getresponse_checkout_all_after_form_submitted>
+                </observers>
+            </checkout_submit_all_after>
+            <sales_quote_address_save_after>
+                <observers>
+                    <getresponse_sales_quote_address_save_after>
+                        <class>GetresponseIntegration_Getresponse_Model_Observer</class>
+                        <method>checkoutSaveAddress</method>
+                        <type>singleton</type>
+                    </getresponse_sales_quote_address_save_after>
+                </observers>
+            </sales_quote_address_save_after>
+
             <customer_register_success>
                 <observers>
                     <getresponse_create_account>
@@ -71,6 +100,9 @@
                     <automations>
                         <table>getresponse_automations</table>
                     </automations>
+                    <shop>
+                        <table>getresponse_shops</table>
+                    </shop>
                 </entities>
             </getresponse_resource>
         </models>
@@ -104,12 +136,61 @@
                     </getresponse_block_observer>
                 </observers>
             </controller_action_layout_generate_blocks_before>
+
+            <core_block_abstract_prepare_layout_before>
+                <observers>
+
+                    <getresponse_tracking_code_observer>
+                        <type>singleton</type>
+                        <class>GetresponseIntegration_Getresponse_Model_Observer</class>
+                        <method>addTrackingCodeToHeader</method>
+                    </getresponse_tracking_code_observer>
+
+
+                </observers>
+            </core_block_abstract_prepare_layout_before>
+
+            <checkout_cart_product_add_after>
+                <observers>
+                    <getresponse_add_to_cart_shop_webhook>
+                        <class>GetresponseIntegration_Getresponse_Model_Observer</class>
+                        <method>createNewCartInGetResponseWhenAddedToCart</method>
+                    </getresponse_add_to_cart_shop_webhook>
+                </observers>
+            </checkout_cart_product_add_after>
+
+            <customer_login>
+                <observers>
+                    <getresponse_add_to_cart_shop_webhook>
+                        <class>GetresponseIntegration_Getresponse_Model_Observer</class>
+                        <method>createNewCartInGetResponseWhenCustomerLoggedIn</method>
+                    </getresponse_add_to_cart_shop_webhook>
+                </observers>
+            </customer_login>
+
+            <sales_order_place_after>
+                <observers>
+                    <getresponse_purchase_product_webhook>
+                        <type>singleton</type>
+                        <class>GetresponseIntegration_Getresponse_Model_Observer</class>
+                        <method>CreateNewPurchaseInGetresponseWhenOrderPlaced</method>
+                    </getresponse_purchase_product_webhook>
+                </observers>
+            </sales_order_place_after>
         </events>
         <blocks>
             <getresponse>
                 <class>GetresponseIntegration_Getresponse_Block</class>
             </getresponse>
         </blocks>
+
+        <checkout_onepage_index>
+            <reference name="checkout.onepage.billing">
+                <block type="core/text_list" name="checkout.onepage.billing.extra" as="checkout.onepage.billing.extra">
+                    <block type="core/template" name="my.billing.bit" template="my/extension/checkout/onepage/billing.extra.phtml" />
+                </block>
+            </reference>
+        </checkout_onepage_index>
     </frontend>
 
     <admin>
@@ -150,6 +231,14 @@
                         <title>Campaign rules</title>
                         <action>getresponse/index/automation</action>
                     </automation_page>
+                    <shop_page module="getresponse">
+                        <title>GetResponse E-commerce</title>
+                        <action>getresponse/shop/index</action>
+                    </shop_page>
+                    <web_traffic_page module="getresponse">
+                        <title>Web Traffic Tracking</title>
+                        <action>getresponse/index/webtraffic</action>
+                    </web_traffic_page>
                 </children>
             </getresponse_menu>
         </menu>

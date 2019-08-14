@@ -5,6 +5,7 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 	const CONTACT_ERROR = 1;
 	const CONTACT_UPDATED = 2;
 	const CONTACT_CREATED = 3;
+    const ORIGIN_NAME = 'magento';
 
 	public static $status = array(
 		self::CONTACT_CREATED => 'Created',
@@ -107,8 +108,8 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 
 		}
 		else {
+            $user_customs['origin'] = self::ORIGIN_NAME;
 			$params['customFieldValues'] = $this->set_customs($user_customs);
-
 			$response = $this->grapi()->add_contact($params);
 
 			if (isset($response->codeDescription)) {
@@ -128,7 +129,7 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 	public function get_custom_fields()
 	{
 		$all_customs = array();
-		$results = $this->grapi()->get_custom_fields();
+		$results = $this->grapi()->get_custom_fields(array('perPage' => 1000));
 
 		if (empty($results)) {
 			return $all_customs;
@@ -360,12 +361,77 @@ class GetresponseIntegration_Getresponse_Helper_Api extends Mage_Core_Helper_Abs
 		}
 	}
 
-	public function getApiDetails()
+    /**
+     *
+     * @return object
+     */
+    public function getShops()
     {
-        return [
-            'api_key' => $this->grapi()->api_key,
-            'api_url' => $this->grapi()->api_url,
-            'api_domain' => $this->grapi()->domain
-        ];
+        return $this->grapi()->get_shops();
+	}
+
+    /**
+     * Create new shop.
+     *
+     * @param string $name
+     * @return object
+     */
+    public function addShop($name)
+    {
+        $locale = Mage::app()->getLocale()->getDefaultLocale();
+        $code = strtoupper(substr($locale, 0, 2));
+
+        $params = array(
+            'name' => $name,
+            'locale'  => $code
+        );
+
+        return $this->grapi()->add_shop($params);
+    }
+
+    /**
+     * @param string $shopId
+     * @param string $contactId
+     * @param string $externalId
+     * @param string $url
+     *
+     * @return object
+     */
+    public function addNewCart($shopId, $contactId, $externalId, $url)
+    {
+        $params = array(
+            'contactId' => $contactId,
+            'externalId' => $externalId,
+            'cartUrl' => $url
+        );
+
+        return $this->grapi()->add_new_cart($shopId, $params);
+    }
+
+    /**
+     * @param string $shopId
+     * @param string $contactId
+     * @param string $externalId
+     * @param  string $url
+     * @param array $cost
+     *
+     * @return object
+     */
+    public function addNewPurchase($shopId, $contactId, $externalId, $url, $cost)
+    {
+        $params = array(
+            'contactId' => $contactId,
+            'externalId' => $externalId,
+            'purchaseUrl' => $url,
+            'cost' => array(
+                'value' => $cost['value'],
+                'currency' => $cost['currency'],
+                'shippingCost' => $cost['shippingCost'],
+                'discount' => $cost['discount'],
+                'discountType' => 'value'
+            )
+        );
+
+        return $this->grapi()->add_new_purchase($shopId, $params);
     }
 }
