@@ -1,16 +1,19 @@
 {
-    "name": "OpenMageModuleFostering/GetResponse",
+    "name": "OpenMageModuleFostering\/GetResponse",
     "type": "magento-module",
     "license": "GNU",
     "homepage": "",
     "description": "GetResponse integration",
     "authors": [
-    {
-        "name": "GetResponse",
-        "email": "grintegrations@getresponse.com"
-    }
-],
+        {
+            "name": "GetResponse",
+            "email": "grintegrations@getresponse.com"
+        }
+    ],
     "suggest": {
-        "magento-hackathon/magento-composer-installer": "*"
-    }
+        "magento-hackathon\/magento-composer-installer": "*"
+    },
+    "keywords": [
+        "openmage-module"
+    ]
 }
